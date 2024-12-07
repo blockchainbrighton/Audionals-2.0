@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/> 
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Web-Based Logic Pro Channel Strip (MVP)</title>
+<style>
+    body {
+    font-family: sans-serif;
+    background: #333;
+    color: #eee;
+    margin: 0;
+    padding: 0;
+}
+
+h1 {
+    text-align: center;
+    margin: 20px 0;
+    color: #fff;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.channel-strip {
+    display: flex;
+    flex-direction: column;
+    background: #444;
+    padding: 20px;
+    border-radius: 5px;
+    width: 300px;
+}
+
+.section {
+    background: #555;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+}
+
+.section h2 {
+    margin-top: 0;
+}
+
+.insert-slot {
+    margin-bottom: 10px;
+}
+
+label {
+    display: block;
+    margin: 5px 0 2px 0;
+}
+
+input[type=range] {
+    width: 100%;
+}
+
+select {
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+canvas {
+    background: #222;
+    margin: 5px 0;
+    display: block;
+}
+
+</style>>
+
+</head>
+<body>
+    <div id="app">
+        <h1>Channel Strip Prototype</h1>
+        <div class="channel-strip">
+            <!-- Input Section -->
+            <div class="section input-section">
+                <h2>Input</h2>
+                <label for="input-source">Source:</label>
+                <select id="input-source">
+                    <option value="mic">Microphone</option>
+                    <option value="oscillator">Test Oscillator</option>
+                </select>
+                <label for="input-gain">Gain:</label>
+                <input type="range" id="input-gain" min="0" max="3" step="0.01" value="1" />
+            </div>
+
+            <!-- Inserts Section (Placeholder for multiple inserts) -->
+            <div class="section inserts-section">
+                <h2>Inserts</h2>
+                <!-- Example: We will have just one slot for a filter (EQ) and one slot for a compressor -->
+                <div class="insert-slot">
+                    <h3>EQ (Low Shelf)</h3>
+                    <label for="eq-frequency">Frequency:</label>
+                    <input type="range" id="eq-frequency" min="50" max="1000" step="1" value="200" />
+                    <label for="eq-gain">EQ Gain (dB):</label>
+                    <input type="range" id="eq-gain" min="-15" max="15" step="0.1" value="0" />
+                </div>
+
+                <div class="insert-slot">
+                    <h3>Dynamics (Compressor)</h3>
+                    <label for="comp-threshold">Threshold (dB):</label>
+                    <input type="range" id="comp-threshold" min="-60" max="0" step="1" value="-24" />
+                    <label for="comp-ratio">Ratio:</label>
+                    <input type="range" id="comp-ratio" min="1" max="20" step="0.5" value="2" />
+                </div>
+            </div>
+
+            <!-- Sends Section (Placeholder) -->
+            <div class="section sends-section">
+                <h2>Sends</h2>
+                <p>(Not fully implemented)</p>
+                <!-- Placeholder for future send controls -->
+            </div>
+
+            <!-- Metering Section -->
+            <div class="section meter-section">
+                <h2>Meters</h2>
+                <canvas id="input-meter" width="50" height="200"></canvas>
+                <canvas id="output-meter" width="50" height="200"></canvas>
+            </div>
+
+            <!-- Output Section -->
+            <div class="section output-section">
+                <h2>Output</h2>
+                <label for="pan">Pan:</label>
+                <input type="range" id="pan" min="-1" max="1" step="0.01" value="0" />
+                <label for="output-volume">Volume:</label>
+                <input type="range" id="output-volume" min="0" max="1" step="0.01" value="0.8" />
+                <br/>
+                <label for="output-destination">Output:</label>
+                <select id="output-destination">
+                    <option value="main">Main Mix</option>
+                    <!-- Additional routing options could be added here -->
+                </select>
+            </div>
+
+            <!-- Automation Section (Placeholder) -->
+            <div class="section automation-section">
+                <h2>Automation</h2>
+                <p>Mode: <select id="automation-mode">
+                    <option value="read">Read</option>
+                    <option value="write">Write</option>
+                </select></p>
+                <p>(Placeholder: Here you'd visualize and record parameter changes over time.)</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // main.js
+
+// This file sets up a basic audio graph:
+// Input -> Gain -> EQ(BiquadFilter) -> Compressor -> Panner -> Gain(Output) -> Destination
+// Also includes basic meter visualization and UI event handlers.
+
+let audioContext;
+let inputNode;
+let micStream;
+let oscNode;
+
+let inputGainNode;
+let eqNode;
+let compressorNode;
+let pannerNode;
+let outputGainNode;
+
+let animationFrameId;
+
+// Metering
+let inputMeterCanvas, inputMeterCtx;
+let outputMeterCanvas, outputMeterCtx;
+let inputAnalyser, outputAnalyser;
+let inputData, outputData;
+
+// Automation placeholder structure
+let automationMode = 'read'; // or 'write'
+let automationData = []; // You could store parameter automation data here
+
+document.addEventListener('DOMContentLoaded', async () => {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    // DOM references
+    const inputSourceSelect = document.getElementById('input-source');
+    const inputGainSlider = document.getElementById('input-gain');
+    const eqFrequencySlider = document.getElementById('eq-frequency');
+    const eqGainSlider = document.getElementById('eq-gain');
+    const compThresholdSlider = document.getElementById('comp-threshold');
+    const compRatioSlider = document.getElementById('comp-ratio');
+    const panSlider = document.getElementById('pan');
+    const outputVolumeSlider = document.getElementById('output-volume');
+    const automationModeSelect = document.getElementById('automation-mode');
+
+    inputMeterCanvas = document.getElementById('input-meter');
+    outputMeterCanvas = document.getElementById('output-meter');
+    inputMeterCtx = inputMeterCanvas.getContext('2d');
+    outputMeterCtx = outputMeterCanvas.getContext('2d');
+
+    // Setup Audio Nodes
+    inputGainNode = audioContext.createGain();
+    eqNode = audioContext.createBiquadFilter();
+    eqNode.type = 'lowshelf';
+
+    compressorNode = audioContext.createDynamicsCompressor();
+    pannerNode = audioContext.createStereoPanner();
+    outputGainNode = audioContext.createGain();
+
+    // Create analysers for metering
+    inputAnalyser = audioContext.createAnalyser();
+    inputAnalyser.fftSize = 256;
+    inputData = new Uint8Array(inputAnalyser.frequencyBinCount);
+
+    outputAnalyser = audioContext.createAnalyser();
+    outputAnalyser.fftSize = 256;
+    outputData = new Uint8Array(outputAnalyser.frequencyBinCount);
+
+    // Connect graph
+    // InputNode -> inputGain -> eq -> compressor -> panner -> outputGain -> destination
+    inputGainNode.connect(eqNode);
+    eqNode.connect(compressorNode);
+    compressorNode.connect(pannerNode);
+    pannerNode.connect(outputGainNode);
+    // Meter taps
+    inputGainNode.connect(inputAnalyser);
+    outputGainNode.connect(outputAnalyser);
+
+    outputGainNode.connect(audioContext.destination);
+
+    // Event handlers
+    inputSourceSelect.addEventListener('change', onInputSourceChange);
+    inputGainSlider.addEventListener('input', () => {
+        inputGainNode.gain.value = parseFloat(inputGainSlider.value);
+    });
+
+    eqFrequencySlider.addEventListener('input', () => {
+        eqNode.frequency.value = parseFloat(eqFrequencySlider.value);
+    });
+    eqGainSlider.addEventListener('input', () => {
+        eqNode.gain.value = parseFloat(eqGainSlider.value);
+    });
+
+    compThresholdSlider.addEventListener('input', () => {
+        compressorNode.threshold.value = parseFloat(compThresholdSlider.value);
+    });
+    compRatioSlider.addEventListener('input', () => {
+        compressorNode.ratio.value = parseFloat(compRatioSlider.value);
+    });
+
+    panSlider.addEventListener('input', () => {
+        pannerNode.pan.value = parseFloat(panSlider.value);
+    });
+
+    outputVolumeSlider.addEventListener('input', () => {
+        outputGainNode.gain.value = parseFloat(outputVolumeSlider.value);
+    });
+
+    automationModeSelect.addEventListener('change', () => {
+        automationMode = automationModeSelect.value;
+    });
+
+    // Set initial values
+    inputGainNode.gain.value = parseFloat(inputGainSlider.value);
+    eqNode.frequency.value = parseFloat(eqFrequencySlider.value);
+    eqNode.gain.value = parseFloat(eqGainSlider.value);
+    compressorNode.threshold.value = parseFloat(compThresholdSlider.value);
+    compressorNode.ratio.value = parseFloat(compRatioSlider.value);
+    pannerNode.pan.value = parseFloat(panSlider.value);
+    outputGainNode.gain.value = parseFloat(outputVolumeSlider.value);
+
+    // Initialize with default input
+    await startMicInput();
+
+    // Start animation loop for meters
+    updateMeters();
+});
+
+async function startMicInput() {
+    if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+    }
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    const micSource = audioContext.createMediaStreamSource(micStream);
+    micSource.connect(inputGainNode);
+    inputNode = micSource;
+}
+
+function stopOscillator() {
+    if (oscNode) {
+        oscNode.stop();
+        oscNode.disconnect();
+        oscNode = null;
+    }
+}
+
+function startOscillator() {
+    stopOscillator();
+    oscNode = audioContext.createOscillator();
+    oscNode.type = 'sine';
+    oscNode.frequency.value = 440;
+    oscNode.connect(inputGainNode);
+    oscNode.start();
+}
+
+async function onInputSourceChange() {
+    const source = document.getElementById('input-source').value;
+    if (source === 'mic') {
+        stopOscillator();
+        await startMicInput();
+    } else if (source === 'oscillator') {
+        if (micStream) {
+            micStream.getTracks().forEach(track => track.stop());
+        }
+        startOscillator();
+    }
+}
+
+function updateMeters() {
+    // Input meter
+    inputAnalyser.getByteTimeDomainData(inputData);
+    drawMeter(inputMeterCtx, inputData);
+
+    // Output meter
+    outputAnalyser.getByteTimeDomainData(outputData);
+    drawMeter(outputMeterCtx, outputData);
+
+    animationFrameId = requestAnimationFrame(updateMeters);
+}
+
+function drawMeter(ctx, data) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // Simple approximation of level
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+        let val = data[i] - 128;
+        sum += Math.abs(val);
+    }
+    let avg = sum / data.length;
+    // avg ~0-128 roughly, map to canvas height
+    let height = (avg / 128) * ctx.canvas.height;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, ctx.canvas.height - height, ctx.canvas.width, height);
+}
+
+// Placeholder for potential automation code
+// Here you might record parameter changes over time if automationMode === 'write'
+// and then play them back if automationMode === 'read'.
+// For now, this is just a placeholder.
+
+    </script>
+</body>
+</html>

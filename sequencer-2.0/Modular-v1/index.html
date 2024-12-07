@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Web Channel Strip with Enhancements (Modularized)</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+<header>
+    <div class="top-bar">
+        <h1>Web Channel Strip</h1>
+        <div>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">Toggle Theme</button>
+        </div>
+    </div>
+</header>
+<main>
+    <div class="channel-strip" tabindex="0" aria-label="Channel Strip">
+        <!-- INPUT SECTION -->
+        <div class="section" aria-label="Input Section">
+            <h2>Input</h2>
+            <div class="control-row">
+                <label for="input-gain">Gain:</label>
+                <input id="input-gain" type="range" min="0" max="2" step="0.01" value="1" aria-label="Input Gain"/>
+                <div class="meter-container" aria-label="Input Meter"><div class="meter" id="input-meter"></div></div>
+            </div>
+            <div class="control-row">
+                <label for="mono-stereo">Mode:</label>
+                <select id="mono-stereo" aria-label="Mono/Stereo Selector">
+                    <option value="stereo">Stereo</option>
+                    <option value="mono">Mono</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- INSERTS SECTION -->
+        <div class="section" aria-label="Inserts Section">
+            <h2>Inserts</h2>
+            <div class="inserts-list" id="inserts-list" aria-label="Plugin Slots (drag to reorder)"></div>
+            <div class="control-row">
+                <button id="add-plugin">Add Plugin</button>
+            </div>
+        </div>
+
+        <!-- SENDS SECTION -->
+        <div class="section" aria-label="Sends Section">
+            <h2>Sends</h2>
+            <div class="sends-list" id="sends-list"></div>
+            <div class="control-row">
+                <button id="add-send">Add Send</button>
+            </div>
+        </div>
+
+        <!-- FADER SECTION -->
+        <div class="section" aria-label="Fader Section">
+            <h2>Fader</h2>
+            <div class="control-row">
+                <div class="fader-container" id="fader-container" aria-label="Volume Fader">
+                    <div class="fader-knob" id="fader-knob" role="slider" aria-valuenow="0" tabindex="0"></div>
+                </div>
+                <div class="meter-container" aria-label="Output Meter"><div class="meter" id="output-meter"></div></div>
+            </div>
+            <div class="control-row pan-control">
+                <label for="pan">Pan:</label>
+                <input id="pan" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Pan Control"/>
+            </div>
+        </div>
+
+        <!-- OUTPUT SECTION -->
+        <div class="section" aria-label="Output Section">
+            <h2>Output</h2>
+            <div class="output-selector" aria-label="Output Destination">
+                <label for="output-dest">Destination:</label>
+                <select id="output-dest">
+                    <option value="main">Main Output</option>
+                    <option value="bus">Bus</option>
+                </select>
+                <div class="control-row">
+                    <button id="add-final-effect">Add Final Effect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESETS & UNDO/REDO -->
+        <div class="section" aria-label="Presets and Settings">
+            <h2>Presets</h2>
+            <div class="preset-controls">
+                <button id="save-preset">Save Preset</button>
+                <button id="load-preset">Load Preset</button>
+            </div>
+            <h2>History</h2>
+            <div class="undo-redo-controls">
+                <button id="undo">Undo</button>
+                <button id="redo">Redo</button>
+            </div>
+        </div>
+
+        <!-- AUTOMATION PANEL -->
+        <div class="section automation-panel" aria-label="Automation">
+            <h3>Automation</h3>
+            <p>Click and drag on the timeline to create automation points for volume. Double-click to remove points.</p>
+            <div class="automation-timeline" id="automation-timeline" aria-label="Volume Automation Timeline"></div>
+        </div>
+    </div>
+
+    <!-- WAVEFORM/TIMELINE SECTION -->
+    <div class="waveform-panel" aria-label="Waveform Timeline">
+        <div class="waveform-header">
+            <div>
+                <input type="file" id="audio-file-input" accept="audio/*" aria-label="Load Audio File"/>
+                <button id="play-pause-timeline">Play/Pause</button>
+            </div>
+            <div>Drag & Drop audio files here</div>
+        </div>
+        <div class="waveform-canvas-container" id="waveform-container" aria-label="Waveform Container"></div>
+    </div>
+</main>
+<footer>
+    <p>Web Channel Strip Prototype with Enhancements</p>
+</footer>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Web-Based Channel Strip</title>
+<style>
+    body {
+        background: #2c2c2c;
+        color: #fff;
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    header, footer {
+        background: #1a1a1a;
+        padding: 0.5rem 1rem;
+        text-align: center;
+    }
+    header h1 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    main {
+        display: flex;
+        flex-direction: row;
+        flex: 1;
+        overflow: auto;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    .channel-strip {
+        background: #1e1e1e;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        width: 350px;
+        min-width: 300px;
+        max-width: 100%;
+    }
+    .section {
+        margin-bottom: 1rem;
+    }
+    .section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .control-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    label {
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+    }
+    input[type="range"] {
+        flex: 1;
+        margin: 0 0.5rem;
+    }
+    .meter {
+        width: 10px;
+        height: 100%;
+        background: linear-gradient(to top, #0f0, #ff0, #f00);
+        position: relative;
+    }
+    .meter-container {
+        width: 10px;
+        height: 100px;
+        background: #333;
+        margin-left: 0.5rem;
+        border: 1px solid #555;
+        position: relative;
+        overflow: hidden;
+    }
+    .inserts-list, .sends-list {
+        border: 1px solid #555;
+        padding: 0.5rem;
+        border-radius: 4px;
+        background: #2b2b2b;
+    }
+    .plugin-slot {
+        background: #333;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .plugin-slot span {
+        font-size: 0.85rem;
+    }
+    .send-slot {
+        margin-bottom: 0.5rem;
+    }
+    .fader-container {
+        position: relative;
+        height: 150px;
+        width: 40px;
+        background: #333;
+        margin: 0 auto;
+        border: 1px solid #555;
+        border-radius: 4px;
+    }
+    .fader-knob {
+        width: 30px;
+        height: 10px;
+        background: #666;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .pan-control {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    .output-selector {
+        background: #333;
+        border: 1px solid #555;
+        padding: 0.5rem;
+        border-radius: 4px;
+    }
+    button, select {
+        background: #555;
+        color: #fff;
+        border: 1px solid #444;
+        border-radius: 4px;
+        padding: 0.2rem 0.4rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    button:hover, select:hover {
+        background: #666;
+    }
+    .preset-controls {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .responsive-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+        main {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+<body>
+<header>
+    <h1>Web Channel Strip</h1>
+</header>
+<main>
+    <div class="channel-strip" tabindex="0" aria-label="Channel Strip">
+        <!-- INPUT SECTION -->
+        <div class="section" aria-label="Input Section">
+            <h2>Input</h2>
+            <div class="control-row">
+                <label for="input-gain">Gain:</label>
+                <input id="input-gain" type="range" min="0" max="2" step="0.01" value="1" aria-label="Input Gain"/>
+                <div class="meter-container" aria-label="Input Meter"><div class="meter" id="input-meter"></div></div>
+            </div>
+            <div class="control-row">
+                <label for="mono-stereo">Mode:</label>
+                <select id="mono-stereo" aria-label="Mono/Stereo Selector">
+                    <option value="stereo">Stereo</option>
+                    <option value="mono">Mono</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- INSERTS SECTION -->
+        <div class="section" aria-label="Inserts Section">
+            <h2>Inserts</h2>
+            <div class="inserts-list" id="inserts-list" aria-label="Plugin Slots (drag to reorder)">
+                <!-- Example plugin slots -->
+            </div>
+            <div class="control-row">
+                <button id="add-plugin">Add Plugin</button>
+            </div>
+        </div>
+
+        <!-- SENDS SECTION -->
+        <div class="section" aria-label="Sends Section">
+            <h2>Sends</h2>
+            <div class="sends-list" id="sends-list">
+                <!-- Send slots will be dynamic -->
+            </div>
+            <div class="control-row">
+                <button id="add-send">Add Send</button>
+            </div>
+        </div>
+
+        <!-- FADER SECTION -->
+        <div class="section" aria-label="Fader Section">
+            <h2>Fader</h2>
+            <div class="control-row">
+                <div class="fader-container" id="fader-container" aria-label="Volume Fader">
+                    <div class="fader-knob" id="fader-knob" role="slider" aria-valuenow="0" tabindex="0"></div>
+                </div>
+                <div class="meter-container" aria-label="Output Meter"><div class="meter" id="output-meter"></div></div>
+            </div>
+            <div class="control-row pan-control">
+                <label for="pan">Pan:</label>
+                <input id="pan" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Pan Control"/>
+            </div>
+        </div>
+
+        <!-- OUTPUT SECTION -->
+        <div class="section" aria-label="Output Section">
+            <h2>Output</h2>
+            <div class="output-selector" aria-label="Output Destination">
+                <label for="output-dest">Destination:</label>
+                <select id="output-dest">
+                    <option value="main">Main Output</option>
+                    <option value="bus">Bus</option>
+                </select>
+                <div class="control-row">
+                    <button id="add-final-effect">Add Final Effect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESETS -->
+        <div class="section" aria-label="Presets and Settings">
+            <h2>Presets</h2>
+            <div class="preset-controls">
+                <button id="save-preset">Save Preset</button>
+                <button id="load-preset">Load Preset</button>
+            </div>
+        </div>
+    </div>
+</main>
+<footer>
+    <p>Web Channel Strip Prototype</p>
+</footer>
+<script>
+/**
+ * This code creates a basic channel strip simulation using the Web Audio API.
+ * Key functionalities:
+ * - Real-time audio input capture
+ * - Input gain control
+ * - Insert slots for effects
+ * - Sends to auxiliary effects (e.g., reverb)
+ * - Main fader and pan
+ * - Output routing and optional final effects
+ * - Saving/loading presets to localStorage
+ * 
+ * This is a simplified example; production code would have more error checking, 
+ * accessibility, and modular code organization.
+ */
+
+(async function() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let mediaStream;
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+        alert("Microphone access denied. The channel strip cannot process audio.");
+        return;
+    }
+
+    // Core Audio Nodes
+    const inputNode = audioContext.createMediaStreamSource(mediaStream);
+    const inputGainNode = audioContext.createGain();
+
+    // Insert chain: array of effects. We'll keep track of these in a structure.
+    const insertEffects = [];
+
+    // Send & return buses
+    const reverbSend = audioContext.createGain();
+    reverbSend.gain.value = 0.0; // default no send
+    const reverbConvolver = audioContext.createConvolver();
+    // For demonstration, we won't load a real IR here. One could load an IR file via fetch.
+    reverbConvolver.normalize = true;
+    const reverbGain = audioContext.createGain();
+    reverbGain.gain.value = 0.5; 
+    reverbSend.connect(reverbConvolver).connect(reverbGain).connect(audioContext.destination);
+
+    // Pan & Master Fader
+    const panNode = audioContext.createStereoPanner();
+    const masterGain = audioContext.createGain();
+    masterGain.gain.value = 1.0;
+
+    // Final connection to output
+    inputNode.connect(inputGainNode);
+    // Insert chain will connect dynamically here:
+    // inputGainNode -> [inserts...] -> panNode -> masterGain -> destination
+    connectChain();
+
+    function connectChain() {
+        inputGainNode.disconnect();
+        let lastNode = inputGainNode;
+        for (let fx of insertEffects) {
+            lastNode.connect(fx.node);
+            lastNode = fx.node;
+        }
+        lastNode.connect(panNode);
+        panNode.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+    }
+
+    // UI Elements
+    const inputGainSlider = document.getElementById('input-gain');
+    const monoStereoSelect = document.getElementById('mono-stereo');
+    const inputMeterElem = document.getElementById('input-meter');
+    const outputMeterElem = document.getElementById('output-meter');
+    const insertsList = document.getElementById('inserts-list');
+    const addPluginBtn = document.getElementById('add-plugin');
+    const sendsList = document.getElementById('sends-list');
+    const addSendBtn = document.getElementById('add-send');
+    const faderContainer = document.getElementById('fader-container');
+    const faderKnob = document.getElementById('fader-knob');
+    const panControl = document.getElementById('pan');
+    const outputDest = document.getElementById('output-dest');
+    const addFinalEffectBtn = document.getElementById('add-final-effect');
+    const savePresetBtn = document.getElementById('save-preset');
+    const loadPresetBtn = document.getElementById('load-preset');
+
+    // Presets structure
+    function savePreset() {
+        const preset = {
+            inputGain: inputGainSlider.value,
+            mode: monoStereoSelect.value,
+            inserts: insertEffects.map(fx => fx.type),
+            sends: [
+                { type: 'reverb', sendLevel: reverbSend.gain.value }
+            ],
+            fader: currentFaderValue(),
+            pan: panControl.value,
+            output: outputDest.value
+        };
+        localStorage.setItem('channelStripPreset', JSON.stringify(preset));
+        alert('Preset saved!');
+    }
+
+    function loadPreset() {
+        const presetString = localStorage.getItem('channelStripPreset');
+        if (!presetString) {
+            alert('No preset found.');
+            return;
+        }
+        const preset = JSON.parse(presetString);
+        inputGainSlider.value = preset.inputGain;
+        inputGainNode.gain.value = preset.inputGain;
+        monoStereoSelect.value = preset.mode;
+        setMonoStereo(preset.mode);
+        // Clear inserts
+        insertEffects.splice(0, insertEffects.length);
+        while (insertsList.firstChild) insertsList.removeChild(insertsList.firstChild);
+        for (let fxType of preset.inserts) {
+            addInsertEffect(fxType);
+        }
+        // Sends
+        // Assuming only one send for now
+        reverbSend.gain.value = preset.sends[0].sendLevel;
+        // Fader
+        setFaderFromValue(preset.fader);
+        // Pan
+        panControl.value = preset.pan;
+        panNode.pan.value = parseFloat(preset.pan);
+        // Output
+        outputDest.value = preset.output;
+        alert('Preset loaded!');
+    }
+
+    savePresetBtn.addEventListener('click', savePreset);
+    loadPresetBtn.addEventListener('click', loadPreset);
+
+    // Input gain
+    inputGainSlider.addEventListener('input', () => {
+        inputGainNode.gain.value = parseFloat(inputGainSlider.value);
+    });
+
+    // Mono/Stereo
+    monoStereoSelect.addEventListener('change', (e) => {
+        setMonoStereo(e.target.value);
+    });
+    function setMonoStereo(mode) {
+        if (mode === 'mono') {
+            // Sum the channels: create a merger or simply force to mono
+            // For simplicity, we won't rewire drastically, but you'd sum channels here.
+            // This is a placeholder.
+        } else {
+            // stereo mode
+        }
+    }
+
+    // Inserts
+    function addInsertEffect(type = 'EQ') {
+        const { node } = createEffectNode(type);
+        const fx = { type, node };
+        insertEffects.push(fx);
+        updateInsertsUI();
+        connectChain();
+    }
+
+    function createEffectNode(type) {
+        // A basic factory for demonstration.
+        let node;
+        if (type === 'EQ') {
+            node = audioContext.createBiquadFilter();
+            node.type = 'highshelf';
+            node.frequency.value = 3000;
+            node.gain.value = 0; 
+        } else if (type === 'Compressor') {
+            node = audioContext.createDynamicsCompressor();
+            node.threshold.value = -30;
+            node.ratio.value = 3;
+        } else {
+            // Default to gain node as placeholder
+            node = audioContext.createGain();
+        }
+        return { node };
+    }
+
+    function updateInsertsUI() {
+        insertsList.innerHTML = '';
+        insertEffects.forEach((fx, idx) => {
+            const slot = document.createElement('div');
+            slot.className = 'plugin-slot';
+            slot.draggable = true;
+            slot.setAttribute('data-index', idx);
+            slot.innerHTML = `<span>${fx.type}</span> <button data-action="remove">X</button>`;
+            insertsList.appendChild(slot);
+        });
+    }
+
+    addPluginBtn.addEventListener('click', () => {
+        // Simple selection of plugin type for demo
+        const type = prompt('Enter plugin type: EQ or Compressor', 'EQ');
+        if (type) {
+            addInsertEffect(type);
+        }
+    });
+
+    insertsList.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'remove') {
+            const slot = e.target.closest('.plugin-slot');
+            const idx = parseInt(slot.getAttribute('data-index'), 10);
+            insertEffects.splice(idx, 1);
+            updateInsertsUI();
+            connectChain();
+        }
+    });
+
+    // Drag and drop reordering inserts
+    let dragIndex = null;
+    insertsList.addEventListener('dragstart', (e) => {
+        const slot = e.target.closest('.plugin-slot');
+        if (!slot) return;
+        dragIndex = parseInt(slot.getAttribute('data-index'), 10);
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    insertsList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+    insertsList.addEventListener('drop', (e) => {
+        const slot = e.target.closest('.plugin-slot');
+        if (!slot) return;
+        const dropIndex = parseInt(slot.getAttribute('data-index'), 10);
+        if (dropIndex === dragIndex) return;
+        const draggedFx = insertEffects.splice(dragIndex, 1)[0];
+        insertEffects.splice(dropIndex, 0, draggedFx);
+        updateInsertsUI();
+        connectChain();
+    });
+
+    // Sends
+    function addSend(type = 'reverb') {
+        // For demonstration, we only have one reverb send, but let's just allow multiple.
+        // Here we add a slider to control the reverbSend.gain
+        const div = document.createElement('div');
+        div.className = 'send-slot';
+        div.innerHTML = `
+            <label>${type} Send:</label> 
+            <input type="range" min="0" max="1" step="0.01" value="${reverbSend.gain.value}" />
+            <select>
+                <option value="post">Post-Fader</option>
+                <option value="pre">Pre-Fader</option>
+            </select>
+        `;
+        sendsList.appendChild(div);
+
+        const slider = div.querySelector('input[type="range"]');
+        slider.addEventListener('input', () => {
+            reverbSend.gain.value = parseFloat(slider.value);
+        });
+
+        const modeSelect = div.querySelector('select');
+        modeSelect.addEventListener('change', () => {
+            // post vs pre fader:
+            // In this simplified demo, we always keep it post-fader by default.
+            // If pre-fader were chosen, you'd route differently: inputGainNode -> reverbSend vs. after masterGain.
+        });
+    }
+
+    addSendBtn.addEventListener('click', () => addSend('reverb'));
+
+    // Fader
+    let faderMin = -60; // in dB
+    let faderMax = 0;
+    let faderValue = 0; // dB
+
+    function dbToGain(db) {
+        return Math.pow(10, db / 20);
+    }
+
+    function gainToDb(g) {
+        return 20 * Math.log10(g);
+    }
+
+    // draggable fader knob
+    let isDraggingFader = false;
+    let faderHeight = 150;
+    let knobHeight = 10;
+
+    faderKnob.addEventListener('mousedown', (e) => {
+        isDraggingFader = true;
+        document.addEventListener('mousemove', onFaderMove);
+        document.addEventListener('mouseup', onFaderUp);
+    });
+
+    function onFaderMove(e) {
+        if (!isDraggingFader) return;
+        const rect = faderContainer.getBoundingClientRect();
+        let y = e.clientY - rect.top;
+        // clamp
+        if (y < 0) y = 0;
+        if (y > faderHeight) y = faderHeight;
+        const ratio = 1 - (y / faderHeight);
+        faderValue = faderMin + (faderMax - faderMin) * ratio;
+        masterGain.gain.value = dbToGain(faderValue);
+        positionFaderKnob();
+    }
+
+    function onFaderUp(e) {
+        isDraggingFader = false;
+        document.removeEventListener('mousemove', onFaderMove);
+        document.removeEventListener('mouseup', onFaderUp);
+    }
+
+    function positionFaderKnob() {
+        const dbRange = faderMax - faderMin;
+        const ratio = (faderValue - faderMin) / dbRange;
+        const y = faderHeight - ratio * faderHeight;
+        faderKnob.style.top = (y - knobHeight/2) + 'px';
+        faderKnob.setAttribute('aria-valuenow', faderValue.toFixed(1) + ' dB');
+    }
+
+    function currentFaderValue() {
+        return faderValue;
+    }
+
+    function setFaderFromValue(dbValue) {
+        faderValue = dbValue;
+        masterGain.gain.value = dbToGain(faderValue);
+        positionFaderKnob();
+    }
+
+    setFaderFromValue(-10); // initial default
+
+    // Pan
+    panControl.addEventListener('input', () => {
+        panNode.pan.value = parseFloat(panControl.value);
+    });
+
+    // Output destination
+    // This demo doesn't implement bus routing beyond main output.
+    outputDest.addEventListener('change', () => {
+        // If bus is selected, we could reroute masterGain to a different node.
+        // For now, do nothing. This is a placeholder.
+    });
+
+    // Add final effect (like a limiter)
+    addFinalEffectBtn.addEventListener('click', () => {
+        // Insert a limiter (just a compressor with extreme settings) at the end.
+        // For demonstration, just add a compressor at the end.
+        addInsertEffect('Compressor');
+    });
+
+    // Simple meters using an AnalyserNode
+    const inputAnalyser = audioContext.createAnalyser();
+    const outputAnalyser = audioContext.createAnalyser();
+    inputAnalyser.fftSize = 256;
+    outputAnalyser.fftSize = 256;
+    inputGainNode.connect(inputAnalyser);
+    masterGain.connect(outputAnalyser);
+
+    function updateMeters() {
+        const inputData = new Uint8Array(inputAnalyser.frequencyBinCount);
+        inputAnalyser.getByteTimeDomainData(inputData);
+        const inputLevel = getRms(inputData);
+        drawMeter(inputMeterElem, inputLevel);
+
+        const outputData = new Uint8Array(outputAnalyser.frequencyBinCount);
+        outputAnalyser.getByteTimeDomainData(outputData);
+        const outputLevel = getRms(outputData);
+        drawMeter(outputMeterElem, outputLevel);
+        requestAnimationFrame(updateMeters);
+    }
+
+    function getRms(data) {
+        let sum = 0;
+        for (let i=0; i<data.length; i++) {
+            const val = (data[i] - 128) / 128.0;
+            sum += val*val;
+        }
+        return Math.sqrt(sum/data.length);
+    }
+
+    function drawMeter(elem, level) {
+        // level is between 0 and ~1
+        const percent = Math.min(1, level * 3) * 100; 
+        elem.style.top = (100 - percent) + '%';
+    }
+
+    updateMeters();
+})();
+</script>
+</body>
+</html>

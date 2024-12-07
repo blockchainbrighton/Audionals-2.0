@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Web Channel Strip with Enhancements</title>
+<style>
+    :root {
+        --bg-color: #2c2c2c;
+        --fg-color: #ffffff;
+        --panel-color: #1e1e1e;
+        --border-color: #444;
+        --highlight-color: #555;
+    }
+
+    body.light-mode {
+        --bg-color: #f0f0f0;
+        --fg-color: #000000;
+        --panel-color: #ffffff;
+        --border-color: #ccc;
+        --highlight-color: #ddd;
+    }
+
+    body {
+        background: var(--bg-color);
+        color: var(--fg-color);
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    header, footer {
+        background: var(--panel-color);
+        padding: 0.5rem 1rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+    header h1 {
+        margin: 0;
+        font-size: 1.2rem;
+    }
+
+    .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    main {
+        display: flex;
+        flex-direction: row;
+        flex: 1;
+        overflow: auto;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    .channel-strip {
+        background: var(--panel-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        width: 350px;
+        min-width: 300px;
+        max-width: 100%;
+        flex-shrink: 0;
+    }
+    .section {
+        margin-bottom: 1rem;
+    }
+    .section h2 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .control-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    label {
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+    }
+    input[type="range"] {
+        flex: 1;
+        margin: 0 0.5rem;
+    }
+    .meter {
+        width: 10px;
+        height: 100%;
+        background: linear-gradient(to top, #0f0, #ff0, #f00);
+        position: relative;
+    }
+    .meter-container {
+        width: 10px;
+        height: 100px;
+        background: var(--highlight-color);
+        margin-left: 0.5rem;
+        border: 1px solid var(--border-color);
+        position: relative;
+        overflow: hidden;
+    }
+    .inserts-list, .sends-list {
+        border: 1px solid var(--border-color);
+        padding: 0.5rem;
+        border-radius: 4px;
+        background: var(--highlight-color);
+    }
+    .plugin-slot {
+        background: var(--panel-color);
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        cursor: move;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .plugin-slot span {
+        font-size: 0.85rem;
+    }
+    .send-slot {
+        margin-bottom: 0.5rem;
+    }
+    .fader-container {
+        position: relative;
+        height: 150px;
+        width: 40px;
+        background: var(--panel-color);
+        margin: 0 auto;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+    }
+    .fader-knob {
+        width: 30px;
+        height: 10px;
+        background: #666;
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        cursor: pointer;
+        border-radius: 2px;
+    }
+    .pan-control {
+        width: 100%;
+        margin-top: 0.5rem;
+    }
+    .output-selector {
+        background: var(--panel-color);
+        border: 1px solid var(--border-color);
+        padding: 0.5rem;
+        border-radius: 4px;
+    }
+    button, select {
+        background: var(--highlight-color);
+        color: var(--fg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.2rem 0.4rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    button:hover, select:hover {
+        background: #666;
+    }
+    .preset-controls, .undo-redo-controls {
+        margin-top: 1rem;
+        display: flex;
+        gap: 0.5rem;
+    }
+    .automation-panel {
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--panel-color);
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    .automation-panel h3 {
+        margin-top: 0;
+    }
+    .automation-timeline {
+        width: 100%;
+        height: 100px;
+        background: var(--highlight-color);
+        border: 1px solid var(--border-color);
+        position: relative;
+        cursor: crosshair;
+    }
+    .waveform-panel {
+        position: relative;
+        flex: 1;
+        border: 1px solid var(--border-color);
+        background: var(--panel-color);
+        border-radius: 4px;
+        overflow: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    .waveform-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--panel-color);
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .waveform-canvas-container {
+        position: relative;
+        flex: 1;
+        overflow: scroll;
+        background: var(--highlight-color);
+    }
+    .audio-clip {
+        position: absolute;
+        top: 20px;
+        cursor: move;
+        border: 1px solid var(--border-color);
+        background: var(--panel-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .audio-clip canvas {
+        display: block;
+    }
+    .theme-toggle {
+        margin-left: 1rem;
+    }
+
+    @media (max-width: 600px) {
+        main {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+<body>
+<header>
+    <div class="top-bar">
+        <h1>Web Channel Strip</h1>
+        <div>
+            <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Theme">Toggle Theme</button>
+        </div>
+    </div>
+</header>
+<main>
+    <div class="channel-strip" tabindex="0" aria-label="Channel Strip">
+        <!-- INPUT SECTION -->
+        <div class="section" aria-label="Input Section">
+            <h2>Input</h2>
+            <div class="control-row">
+                <label for="input-gain">Gain:</label>
+                <input id="input-gain" type="range" min="0" max="2" step="0.01" value="1" aria-label="Input Gain"/>
+                <div class="meter-container" aria-label="Input Meter"><div class="meter" id="input-meter"></div></div>
+            </div>
+            <div class="control-row">
+                <label for="mono-stereo">Mode:</label>
+                <select id="mono-stereo" aria-label="Mono/Stereo Selector">
+                    <option value="stereo">Stereo</option>
+                    <option value="mono">Mono</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- INSERTS SECTION -->
+        <div class="section" aria-label="Inserts Section">
+            <h2>Inserts</h2>
+            <div class="inserts-list" id="inserts-list" aria-label="Plugin Slots (drag to reorder)">
+                <!-- Plugin slots -->
+            </div>
+            <div class="control-row">
+                <button id="add-plugin">Add Plugin</button>
+            </div>
+        </div>
+
+        <!-- SENDS SECTION -->
+        <div class="section" aria-label="Sends Section">
+            <h2>Sends</h2>
+            <div class="sends-list" id="sends-list">
+                <!-- Send slots -->
+            </div>
+            <div class="control-row">
+                <button id="add-send">Add Send</button>
+            </div>
+        </div>
+
+        <!-- FADER SECTION -->
+        <div class="section" aria-label="Fader Section">
+            <h2>Fader</h2>
+            <div class="control-row">
+                <div class="fader-container" id="fader-container" aria-label="Volume Fader">
+                    <div class="fader-knob" id="fader-knob" role="slider" aria-valuenow="0" tabindex="0"></div>
+                </div>
+                <div class="meter-container" aria-label="Output Meter"><div class="meter" id="output-meter"></div></div>
+            </div>
+            <div class="control-row pan-control">
+                <label for="pan">Pan:</label>
+                <input id="pan" type="range" min="-1" max="1" step="0.01" value="0" aria-label="Pan Control"/>
+            </div>
+        </div>
+
+        <!-- OUTPUT SECTION -->
+        <div class="section" aria-label="Output Section">
+            <h2>Output</h2>
+            <div class="output-selector" aria-label="Output Destination">
+                <label for="output-dest">Destination:</label>
+                <select id="output-dest">
+                    <option value="main">Main Output</option>
+                    <option value="bus">Bus</option>
+                </select>
+                <div class="control-row">
+                    <button id="add-final-effect">Add Final Effect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PRESETS & UNDO/REDO -->
+        <div class="section" aria-label="Presets and Settings">
+            <h2>Presets</h2>
+            <div class="preset-controls">
+                <button id="save-preset">Save Preset</button>
+                <button id="load-preset">Load Preset</button>
+            </div>
+            <h2>History</h2>
+            <div class="undo-redo-controls">
+                <button id="undo">Undo</button>
+                <button id="redo">Redo</button>
+            </div>
+        </div>
+
+        <!-- AUTOMATION PANEL -->
+        <div class="section automation-panel" aria-label="Automation">
+            <h3>Automation</h3>
+            <p>Click and drag on the timeline to create automation points for volume. Double-click to remove points.</p>
+            <div class="automation-timeline" id="automation-timeline" aria-label="Volume Automation Timeline"></div>
+        </div>
+    </div>
+
+    <!-- WAVEFORM/TIMELINE SECTION -->
+    <div class="waveform-panel" aria-label="Waveform Timeline">
+        <div class="waveform-header">
+            <div>
+                <input type="file" id="audio-file-input" accept="audio/*" aria-label="Load Audio File"/>
+                <button id="play-pause-timeline">Play/Pause</button>
+            </div>
+            <div>Drag & Drop audio files here</div>
+        </div>
+        <div class="waveform-canvas-container" id="waveform-container" aria-label="Waveform Container"></div>
+    </div>
+</main>
+<footer>
+    <p>Web Channel Strip Prototype with Enhancements</p>
+</footer>
+<script>
+/**
+ * ENHANCED CHANNEL STRIP APPLICATION
+ * New Features:
+ * - Additional Effects: Delay, Distortion, more complex EQ
+ * - Automation Timeline for volume automation
+ * - Undo/Redo system
+ * - Theme toggle (light/dark mode)
+ * - Audio file importing & timeline with waveform display & draggable clips
+ * - More accessible ARIA attributes
+ * - Performance optimizations
+ */
+
+(async function() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let mediaStream;
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+        alert("Microphone access denied. Microphone input won't be available.");
+    }
+
+    // Core Audio Routing
+    const inputNode = mediaStream ? audioContext.createMediaStreamSource(mediaStream) : audioContext.createGain();
+    if (!mediaStream) {
+        inputNode.gain = { value: 0 }; // no input
+    }
+    const inputGainNode = audioContext.createGain();
+
+    const insertEffects = [];
+    const reverbSend = audioContext.createGain();
+    reverbSend.gain.value = 0.0;
+    const reverbConvolver = audioContext.createConvolver();
+    reverbConvolver.normalize = true;
+    const reverbGain = audioContext.createGain();
+    reverbGain.gain.value = 0.5;
+    reverbSend.connect(reverbConvolver).connect(reverbGain).connect(audioContext.destination);
+
+    const panNode = audioContext.createStereoPanner();
+    const masterGain = audioContext.createGain();
+    masterGain.gain.value = 1.0;
+
+    // Connect the chain initially
+    connectChain();
+
+    function connectChain() {
+        inputGainNode.disconnect();
+        let lastNode = inputGainNode;
+        for (let fx of insertEffects) {
+            lastNode.connect(fx.node);
+            lastNode = fx.node;
+        }
+        lastNode.connect(panNode);
+        panNode.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+    }
+
+    if (mediaStream) {
+        inputNode.connect(inputGainNode);
+    }
+
+    // UI Elements
+    const inputGainSlider = document.getElementById('input-gain');
+    const monoStereoSelect = document.getElementById('mono-stereo');
+    const inputMeterElem = document.getElementById('input-meter');
+    const outputMeterElem = document.getElementById('output-meter');
+    const insertsList = document.getElementById('inserts-list');
+    const addPluginBtn = document.getElementById('add-plugin');
+    const sendsList = document.getElementById('sends-list');
+    const addSendBtn = document.getElementById('add-send');
+    const faderContainer = document.getElementById('fader-container');
+    const faderKnob = document.getElementById('fader-knob');
+    const panControl = document.getElementById('pan');
+    const outputDest = document.getElementById('output-dest');
+    const addFinalEffectBtn = document.getElementById('add-final-effect');
+    const savePresetBtn = document.getElementById('save-preset');
+    const loadPresetBtn = document.getElementById('load-preset');
+    const undoBtn = document.getElementById('undo');
+    const redoBtn = document.getElementById('redo');
+    const themeToggleBtn = document.getElementById('theme-toggle');
+
+    const automationTimeline = document.getElementById('automation-timeline');
+
+    const audioFileInput = document.getElementById('audio-file-input');
+    const waveformContainer = document.getElementById('waveform-container');
+    const playPauseTimelineBtn = document.getElementById('play-pause-timeline');
+
+    // State stack for undo/redo
+    let stateStack = [];
+    let redoStack = [];
+
+    function pushState() {
+        const state = {
+            inputGain: inputGainSlider.value,
+            mode: monoStereoSelect.value,
+            inserts: insertEffects.map(fx => fx.type),
+            sends: [
+                { type: 'reverb', sendLevel: reverbSend.gain.value }
+            ],
+            fader: currentFaderValue(),
+            pan: panControl.value,
+            output: outputDest.value,
+            automationPoints: automationPoints.slice(),
+            clips: audioClips.map(c => ({
+                buffer: c.buffer, // cannot store buffer directly, real app would store URL or hashed data
+                startTime: c.startTime,
+                x: c.x,
+                width: c.width,
+                duration: c.duration
+            }))
+        };
+        stateStack.push(JSON.stringify(state, replacer));
+        redoStack = [];
+    }
+
+    function replacer(key, value) {
+        // Can't JSONify AudioBuffer directly, would need a workaround.
+        // For simplicity, we won't fully serialize the buffer. 
+        // In a real scenario, store just the URL or partial data.
+        if (key === 'buffer') return null; 
+        return value;
+    }
+
+    function restoreState(stateObj) {
+        // This function is partial because we can't restore AudioBuffers from stored state easily.
+        // We'll just restore top-level parameters for demonstration.
+        inputGainSlider.value = stateObj.inputGain;
+        inputGainNode.gain.value = parseFloat(stateObj.inputGain);
+
+        monoStereoSelect.value = stateObj.mode;
+        setMonoStereo(stateObj.mode);
+
+        // Restore inserts
+        insertEffects.splice(0, insertEffects.length);
+        while (insertsList.firstChild) insertsList.removeChild(insertsList.firstChild);
+        for (let fxType of stateObj.inserts) {
+            addInsertEffect(fxType, false);
+        }
+
+        // Sends
+        reverbSend.gain.value = stateObj.sends[0].sendLevel;
+
+        // Fader
+        setFaderFromValue(stateObj.fader);
+        // Pan
+        panControl.value = stateObj.pan;
+        panNode.pan.value = parseFloat(stateObj.pan);
+
+        // Output
+        outputDest.value = stateObj.output;
+
+        // Automation
+        automationPoints = stateObj.automationPoints || [];
+        drawAutomation();
+
+        // Clips (not fully restorable)
+        // In a real scenario, we would reload from saved file references.
+    }
+
+    function undo() {
+        if (stateStack.length > 1) {
+            const current = stateStack.pop();
+            redoStack.push(current);
+            const prev = stateStack[stateStack.length - 1];
+            const stateObj = JSON.parse(prev);
+            restoreState(stateObj);
+            connectChain();
+            updateInsertsUI();
+            alert('Undo performed.');
+        }
+    }
+
+    function redo() {
+        if (redoStack.length > 0) {
+            const next = redoStack.pop();
+            stateStack.push(next);
+            const stateObj = JSON.parse(next);
+            restoreState(stateObj);
+            connectChain();
+            updateInsertsUI();
+            alert('Redo performed.');
+        }
+    }
+
+    undoBtn.addEventListener('click', undo);
+    redoBtn.addEventListener('click', redo);
+
+    // Save/Load presets
+    function savePreset() {
+        const state = {
+            inputGain: inputGainSlider.value,
+            mode: monoStereoSelect.value,
+            inserts: insertEffects.map(fx => fx.type),
+            sends: [
+                { type: 'reverb', sendLevel: reverbSend.gain.value }
+            ],
+            fader: currentFaderValue(),
+            pan: panControl.value,
+            output: outputDest.value,
+            automationPoints: automationPoints.slice()
+        };
+        localStorage.setItem('channelStripPreset', JSON.stringify(state));
+        alert('Preset saved!');
+    }
+
+    function loadPreset() {
+        const presetString = localStorage.getItem('channelStripPreset');
+        if (!presetString) {
+            alert('No preset found.');
+            return;
+        }
+        const preset = JSON.parse(presetString);
+        restoreState(preset);
+        connectChain();
+        updateInsertsUI();
+        alert('Preset loaded!');
+        pushState();
+    }
+
+    savePresetBtn.addEventListener('click', () => {
+        savePreset();
+        pushState();
+    });
+    loadPresetBtn.addEventListener('click', () => {
+        loadPreset();
+        pushState();
+    });
+
+    // Input gain
+    inputGainSlider.addEventListener('input', () => {
+        inputGainNode.gain.value = parseFloat(inputGainSlider.value);
+        pushState();
+    });
+
+    // Mono/Stereo
+    monoStereoSelect.addEventListener('change', (e) => {
+        setMonoStereo(e.target.value);
+        pushState();
+    });
+    function setMonoStereo(mode) {
+        // Placeholder: Real mono summing would require channel merging
+    }
+
+    // Inserts
+    function addInsertEffect(type = 'EQ', pushHistory = true) {
+        const { node } = createEffectNode(type);
+        const fx = { type, node };
+        insertEffects.push(fx);
+        updateInsertsUI();
+        connectChain();
+        if (pushHistory) pushState();
+    }
+
+    function createEffectNode(type) {
+        let node;
+        if (type === 'EQ') {
+            node = audioContext.createBiquadFilter();
+            node.type = 'peaking';
+            node.frequency.value = 1000;
+            node.gain.value = 0;
+        } else if (type === 'Compressor') {
+            node = audioContext.createDynamicsCompressor();
+            node.threshold.value = -30;
+            node.ratio.value = 3;
+        } else if (type === 'Delay') {
+            node = audioContext.createDelay();
+            node.delayTime.value = 0.5;
+        } else if (type === 'Distortion') {
+            node = audioContext.createWaveShaper();
+            node.curve = makeDistortionCurve(50);
+        } else {
+            node = audioContext.createGain();
+        }
+        return { node };
+    }
+
+    function makeDistortionCurve(amount) {
+        const n_samples = 256, curve = new Float32Array(n_samples);
+        for (let i = 0; i < n_samples; ++i ) {
+          const x = i * 2 / n_samples - 1;
+          curve[i] = (3 + amount) * x * 20 * Math.PI / (Math.PI + amount * Math.abs(x));
+        }
+        return curve;
+    }
+
+    function updateInsertsUI() {
+        insertsList.innerHTML = '';
+        insertEffects.forEach((fx, idx) => {
+            const slot = document.createElement('div');
+            slot.className = 'plugin-slot';
+            slot.draggable = true;
+            slot.setAttribute('data-index', idx);
+            slot.innerHTML = `<span>${fx.type}</span> <button data-action="remove">X</button>`;
+            insertsList.appendChild(slot);
+        });
+    }
+
+    addPluginBtn.addEventListener('click', () => {
+        const type = prompt('Enter plugin type: EQ, Compressor, Delay, Distortion', 'EQ');
+        if (type) {
+            addInsertEffect(type);
+        }
+    });
+
+    insertsList.addEventListener('click', (e) => {
+        if (e.target.dataset.action === 'remove') {
+            const slot = e.target.closest('.plugin-slot');
+            const idx = parseInt(slot.getAttribute('data-index'), 10);
+            insertEffects.splice(idx, 1);
+            updateInsertsUI();
+            connectChain();
+            pushState();
+        }
+    });
+
+    // Drag and drop reordering inserts
+    let dragIndex = null;
+    insertsList.addEventListener('dragstart', (e) => {
+        const slot = e.target.closest('.plugin-slot');
+        if (!slot) return;
+        dragIndex = parseInt(slot.getAttribute('data-index'), 10);
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    insertsList.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+    insertsList.addEventListener('drop', (e) => {
+        const slot = e.target.closest('.plugin-slot');
+        if (!slot) return;
+        const dropIndex = parseInt(slot.getAttribute('data-index'), 10);
+        if (dropIndex === dragIndex) return;
+        const draggedFx = insertEffects.splice(dragIndex, 1)[0];
+        insertEffects.splice(dropIndex, 0, draggedFx);
+        updateInsertsUI();
+        connectChain();
+        pushState();
+    });
+
+    // Sends
+    function addSend(type = 'reverb') {
+        const div = document.createElement('div');
+        div.className = 'send-slot';
+        div.innerHTML = `
+            <label>${type} Send:</label> 
+            <input type="range" min="0" max="1" step="0.01" value="${reverbSend.gain.value}" />
+            <select>
+                <option value="post">Post-Fader</option>
+                <option value="pre">Pre-Fader</option>
+            </select>
+        `;
+        sendsList.appendChild(div);
+
+        const slider = div.querySelector('input[type="range"]');
+        slider.addEventListener('input', () => {
+            reverbSend.gain.value = parseFloat(slider.value);
+            pushState();
+        });
+
+        const modeSelect = div.querySelector('select');
+        modeSelect.addEventListener('change', () => {
+            // Not fully implemented. Just a placeholder.
+            pushState();
+        });
+    }
+
+    addSendBtn.addEventListener('click', () => {
+        addSend('reverb');
+        pushState();
+    });
+
+    // Fader
+    let faderMin = -60; // in dB
+    let faderMax = 0;
+    let faderValue = 0; // dB
+
+    function dbToGain(db) {
+        return Math.pow(10, db / 20);
+    }
+
+    function gainToDb(g) {
+        return 20 * Math.log10(g);
+    }
+
+    let isDraggingFader = false;
+    let faderHeight = 150;
+    let knobHeight = 10;
+
+    faderKnob.addEventListener('mousedown', (e) => {
+        isDraggingFader = true;
+        document.addEventListener('mousemove', onFaderMove);
+        document.addEventListener('mouseup', onFaderUp);
+    });
+
+    function onFaderMove(e) {
+        if (!isDraggingFader) return;
+        const rect = faderContainer.getBoundingClientRect();
+        let y = e.clientY - rect.top;
+        if (y < 0) y = 0;
+        if (y > faderHeight) y = faderHeight;
+        const ratio = 1 - (y / faderHeight);
+        faderValue = faderMin + (faderMax - faderMin) * ratio;
+        masterGain.gain.value = dbToGain(faderValue);
+        positionFaderKnob();
+    }
+
+    function onFaderUp(e) {
+        isDraggingFader = false;
+        document.removeEventListener('mousemove', onFaderMove);
+        document.removeEventListener('mouseup', onFaderUp);
+        pushState();
+    }
+
+    function positionFaderKnob() {
+        const dbRange = faderMax - faderMin;
+        const ratio = (faderValue - faderMin) / dbRange;
+        const y = faderHeight - ratio * faderHeight;
+        faderKnob.style.top = (y - knobHeight/2) + 'px';
+        faderKnob.setAttribute('aria-valuenow', faderValue.toFixed(1) + ' dB');
+    }
+
+    function currentFaderValue() {
+        return faderValue;
+    }
+
+    function setFaderFromValue(dbValue) {
+        faderValue = dbValue;
+        masterGain.gain.value = dbToGain(faderValue);
+        positionFaderKnob();
+    }
+
+    setFaderFromValue(-10);
+
+    // Pan
+    panControl.addEventListener('input', () => {
+        panNode.pan.value = parseFloat(panControl.value);
+        pushState();
+    });
+
+    // Output destination
+    outputDest.addEventListener('change', () => {
+        // Not fully implemented (bus routing), placeholder.
+        pushState();
+    });
+
+    // Add final effect
+    addFinalEffectBtn.addEventListener('click', () => {
+        addInsertEffect('Compressor');
+        pushState();
+    });
+
+    // Theme toggle
+    themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+    });
+
+    // Meters
+    const inputAnalyser = audioContext.createAnalyser();
+    const outputAnalyser = audioContext.createAnalyser();
+    inputAnalyser.fftSize = 256;
+    outputAnalyser.fftSize = 256;
+    inputGainNode.connect(inputAnalyser);
+    masterGain.connect(outputAnalyser);
+
+    let lastMeterUpdate = 0;
+    function updateMeters(timestamp) {
+        if (timestamp - lastMeterUpdate > 50) {
+            const inputData = new Uint8Array(inputAnalyser.frequencyBinCount);
+            inputAnalyser.getByteTimeDomainData(inputData);
+            const inputLevel = getRms(inputData);
+            drawMeter(inputMeterElem, inputLevel);
+
+            const outputData = new Uint8Array(outputAnalyser.frequencyBinCount);
+            outputAnalyser.getByteTimeDomainData(outputData);
+            const outputLevel = getRms(outputData);
+            drawMeter(outputMeterElem, outputLevel);
+            lastMeterUpdate = timestamp;
+        }
+        requestAnimationFrame(updateMeters);
+    }
+
+    function getRms(data) {
+        let sum = 0;
+        for (let i=0; i<data.length; i++) {
+            const val = (data[i] - 128) / 128.0;
+            sum += val*val;
+        }
+        return Math.sqrt(sum/data.length);
+    }
+
+    function drawMeter(elem, level) {
+        const percent = Math.min(1, level * 3) * 100; 
+        elem.style.top = (100 - percent) + '%';
+    }
+
+    requestAnimationFrame(updateMeters);
+
+    // Automation
+    let automationPoints = []; // {x: ..., value: ...} value in dB or linear gain
+    automationTimeline.addEventListener('mousedown', onAutomationMouseDown);
+    automationTimeline.addEventListener('dblclick', onAutomationDblClick);
+
+    function onAutomationMouseDown(e) {
+        if (e.button !== 0) return;
+        const rect = automationTimeline.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const value = 1 - (y / rect.height); // normalized
+        automationPoints.push({ x, value });
+        drawAutomation();
+        pushState();
+    }
+
+    function onAutomationDblClick(e) {
+        const rect = automationTimeline.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        // Remove closest point
+        if (automationPoints.length > 0) {
+            let closest = -1;
+            let closestDist = Infinity;
+            for (let i=0; i<automationPoints.length; i++) {
+                const dx = automationPoints[i].x - x;
+                const dy = (1-automationPoints[i].value)*rect.height - y;
+                const dist = dx*dx+dy*dy;
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = i;
+                }
+            }
+            if (closest !== -1 && closestDist < 1000) {
+                automationPoints.splice(closest,1);
+                drawAutomation();
+                pushState();
+            }
+        }
+    }
+
+    function drawAutomation() {
+        // Clear existing children
+        automationTimeline.innerHTML = '';
+        const rect = automationTimeline.getBoundingClientRect();
+        // Sort by x
+        automationPoints.sort((a,b) => a.x - b.x);
+
+        // Draw points
+        automationPoints.forEach(p => {
+            const dot = document.createElement('div');
+            dot.style.position = 'absolute';
+            dot.style.width = '8px';
+            dot.style.height = '8px';
+            dot.style.background = '#f00';
+            dot.style.borderRadius = '50%';
+            dot.style.left = (p.x - 4) + 'px';
+            dot.style.top = ((1-p.value)*rect.height - 4) + 'px';
+            automationTimeline.appendChild(dot);
+        });
+
+        applyAutomation();
+    }
+
+    function applyAutomation() {
+        // For simplicity, apply volume automation as a linear ramp over time.
+        // Real automation would track currentTime and schedule setValueAtTime calls.
+        // Here, we just pick the first point as start and last as end for demonstration.
+        if (automationPoints.length >= 2) {
+            masterGain.gain.cancelScheduledValues(0);
+            const now = audioContext.currentTime;
+            const duration = 10; // apply over 10s for demo
+            let t0 = now;
+            let t1 = now + duration;
+            // We'll just do linear interpolation between points
+            masterGain.gain.setValueAtTime(dbToGain(-10), now); // base
+            const totalWidth = automationTimeline.clientWidth;
+            for (let i=0; i<automationPoints.length; i++) {
+                const p = automationPoints[i];
+                const ratio = p.x / totalWidth;
+                const time = now + ratio * duration;
+                const dBVal = faderMin + p.value*(faderMax-faderMin);
+                masterGain.gain.linearRampToValueAtTime(dbToGain(dBVal), time);
+            }
+        }
+    }
+
+    // Audio File Import & Timeline
+    let audioClips = [];
+    let isPlayingTimeline = false;
+    let timelineStartTime = 0;
+
+    playPauseTimelineBtn.addEventListener('click', () => {
+        if (!isPlayingTimeline) {
+            startTimelinePlayback();
+        } else {
+            stopTimelinePlayback();
+        }
+    });
+
+    function startTimelinePlayback() {
+        isPlayingTimeline = true;
+        timelineStartTime = audioContext.currentTime;
+        for (let clip of audioClips) {
+            const source = audioContext.createBufferSource();
+            source.buffer = clip.buffer;
+            source.connect(inputGainNode); 
+            source.start(audioContext.currentTime + clip.startTime);
+            clip.source = source;
+        }
+        playPauseTimelineBtn.textContent = 'Pause';
+    }
+
+    function stopTimelinePlayback() {
+        isPlayingTimeline = false;
+        for (let clip of audioClips) {
+            if (clip.source) {
+                clip.source.stop();
+                clip.source.disconnect();
+                clip.source = null;
+            }
+        }
+        playPauseTimelineBtn.textContent = 'Play';
+    }
+
+    waveformContainer.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+
+    waveformContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            loadAudioFile(files[0]);
+        }
+    });
+
+    audioFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            loadAudioFile(e.target.files[0]);
+        }
+    });
+
+    async function loadAudioFile(file) {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        addAudioClip(audioBuffer);
+        pushState();
+    }
+
+    function addAudioClip(buffer) {
+        const duration = buffer.duration;
+        const pxPerSec = 100;
+        const width = duration * pxPerSec;
+        const clip = {
+            buffer,
+            startTime: 0,
+            x: 50,
+            width,
+            duration
+        };
+        audioClips.push(clip);
+        drawClips();
+    }
+
+    function drawClips() {
+        waveformContainer.innerHTML = '';
+        for (let clip of audioClips) {
+            const clipDiv = document.createElement('div');
+            clipDiv.className = 'audio-clip';
+            clipDiv.style.left = clip.x + 'px';
+            clipDiv.style.width = clip.width + 'px';
+            clipDiv.style.height = '60px';
+
+            const canvas = document.createElement('canvas');
+            canvas.width = clip.width;
+            canvas.height = 60;
+            clipDiv.appendChild(canvas);
+            drawWaveform(canvas, clip.buffer);
+
+            clipDiv.draggable = true;
+
+            clipDiv.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', clip.x);
+                e.dataTransfer.effectAllowed = 'move';
+                currentDraggingClip = clip;
+            });
+
+            waveformContainer.appendChild(clipDiv);
+        }
+
+        waveformContainer.addEventListener('dragover', clipDragOver);
+        waveformContainer.addEventListener('drop', clipDrop);
+    }
+
+    let currentDraggingClip = null;
+    function clipDragOver(e) {
+        e.preventDefault();
+    }
+
+    function clipDrop(e) {
+        e.preventDefault();
+        if (currentDraggingClip) {
+            const rect = waveformContainer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            currentDraggingClip.x = x;
+            currentDraggingClip.startTime = (x - 50)/100;
+            drawClips();
+            pushState();
+            currentDraggingClip = null;
+        }
+    }
+
+    function drawWaveform(canvas, buffer) {
+        const ctx = canvas.getContext('2d');
+        const data = buffer.getChannelData(0);
+        const step = Math.floor(data.length / canvas.width);
+        const amp = canvas.height / 2;
+        ctx.fillStyle = varGet('--panel-color');
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.strokeStyle = varGet('--fg-color');
+        ctx.beginPath();
+        for (let i=0; i<canvas.width; i++) {
+            const min =  Math.min(...data.slice(i*step,(i+1)*step));
+            const max =  Math.max(...data.slice(i*step,(i+1)*step));
+            ctx.moveTo(i, amp*(1+min));
+            ctx.lineTo(i, amp*(1+max));
+        }
+        ctx.stroke();
+    }
+
+    function varGet(name) {
+        return getComputedStyle(document.body).getPropertyValue(name).trim();
+    }
+
+    // Initialize state
+    pushState();
+})();
+</script>
+</body>
+</html>

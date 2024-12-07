@@ -1,0 +1,15 @@
+project/
+├─ index.html
+├─ css/
+│  └─ style.css
+├─ js/
+│  ├─ main.js
+│  ├─ audioEngine.js
+│  ├─ uiHandlers.js
+│  ├─ plugins.js
+│  ├─ automation.js
+│  ├─ waveform.js
+│  ├─ stateManager.js
+├─ assets/
+│  └─ (place any IR files, etc. here)
+└─ README.md
