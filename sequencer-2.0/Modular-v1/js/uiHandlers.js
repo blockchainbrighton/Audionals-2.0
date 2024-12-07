@@ -1,10 +1,7 @@
 // js/uiHandlers.js
-import { insertEffects } from './audioEngine.js';
-import { addInsertEffect, removeInsertEffect, reorderInsertEffects, addSend } from './plugins.js';
-import { undo, redo, savePreset, loadPreset, setFaderFromValue, getCurrentFaderValue, pushState } from './stateManager.js';
+import { addInsertEffect, addSend } from './plugins/plugins.js';
+import { undo, redo, savePreset, loadPreset, setFaderFromValue, pushState } from './stateManager.js';
 import { panNode, masterGain, dbToGain } from './audioEngine.js';
-import { drawAutomation } from './automation.js';
-import { inputGainNode } from './audioEngine.js'; // Import at top
 
 
 export async function initUI() {
@@ -185,7 +182,7 @@ async function onInsertDrop(e) {
     if (!slot) return;
     const dropIndex = parseInt(slot.getAttribute('data-index'), 10);
     if (dropIndex === dragIndex) return;
-    const { reorderInsertEffects } = await import('./plugins.js');
+    const { reorderInsertEffects } = await import('./plugins/plugins.js');
     reorderInsertEffects(dragIndex, dropIndex);
 }
 
@@ -193,7 +190,7 @@ async function onInsertsListClick(e) {
     if (e.target.dataset.action === 'remove') {
         const slot = e.target.closest('.plugin-slot');
         const idx = parseInt(slot.getAttribute('data-index'), 10);
-        const { removeInsertEffect } = await import('./plugins.js');
+        const { removeInsertEffect } = await import('./plugins/plugins.js');
         removeInsertEffect(idx);
     }
 }
@@ -201,7 +198,7 @@ async function onInsertsListClick(e) {
 async function onAddPlugin() {
     const type = prompt('Enter plugin type: EQ, Compressor, Delay, Distortion', 'EQ');
     if (type) {
-        const { addInsertEffect } = await import('./plugins.js');
+        const { addInsertEffect } = await import('./plugins/plugins.js');
         addInsertEffect(type);
     }
 }

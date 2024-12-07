@@ -1,7 +1,7 @@
 // js/plugins.js
-import { audioContext, insertEffects, connectChain, createEffectNode, reverbSend } from './audioEngine.js';
-import { pushState } from './stateManager.js';
-import { updateInsertsUI } from './uiHandlers.js';
+import { insertEffects, connectChain, createEffectNode, reverbSend } from '../audioEngine.js';
+import { pushState } from '../stateManager.js';
+import { updateInsertsUI } from '../uiHandlers.js';
 
 export function addInsertEffect(type = 'EQ', pushHistory = true) {
     const { node } = createEffectNode(type);

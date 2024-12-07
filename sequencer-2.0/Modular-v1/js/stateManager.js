@@ -1,5 +1,5 @@
 // js/stateManager.js
-import { inputGainNode, panNode, masterGain, insertEffects } from './audioEngine.js';
+import { inputGainNode, panNode, insertEffects } from './audioEngine.js';
 import { automationPoints, drawAutomation } from './automation.js';
 import { audioClips } from './waveform.js';
 import { updateInsertsUI } from './uiHandlers.js';
