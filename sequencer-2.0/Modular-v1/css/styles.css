@@ -207,16 +207,26 @@ button:hover, select:hover {
     flex: 1;
     overflow: scroll;
     background: var(--highlight-color);
+    height: 1800px; /* 16 tracks * ~100px each, adjustable */
 }
 .audio-clip {
     position: absolute;
-    top: 20px;
     cursor: move;
     border: 1px solid var(--border-color);
     background: var(--panel-color);
     border-radius: 4px;
     overflow: hidden;
 }
+/* The playback position line */
+.playback-line {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    background: red;
+    z-index: 9999;
+    pointer-events: none;
+}
+
 .audio-clip canvas {
     display: block;
 }

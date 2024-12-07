@@ -8,8 +8,6 @@ project/
 │  ├─ uiHandlers.js
 │  ├─ plugins.js
 │  ├─ automation.js
-│  ├─ waveform.js
+│  ├─ timeline.js       # Replaces waveform.js with multi-track support
 │  ├─ stateManager.js
-├─ assets/
-│  └─ (place any IR files, etc. here)
 └─ README.md
