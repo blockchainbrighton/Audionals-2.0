@@ -202,3 +202,82 @@ async function onAddPlugin() {
         addInsertEffect(type);
     }
 }
+
+
+
+// <details>
+// <summary><strong>Collapsible Notes: uiHandlers.js</strong></summary>
+
+// ### Overview
+// `uiHandlers.js` manages the user interface interactions for the **Audional Sequencer 2.0** application. It handles events such as adding plugins, adjusting gain and pan controls, managing presets, and updating the UI elements like meters and faders.
+
+// ### Key Functions
+
+// - **initUI()**:
+//   - Initializes event listeners for various UI elements, including buttons, sliders, and selectors.
+//   - Handles interactions for adding/removing plugins and sends, saving/loading presets, undo/redo actions, and theme toggling.
+//   - Manages the volume fader with drag-and-drop functionality.
+//   - Sets up audio meters to visualize input and output levels.
+//   - Listens for custom events to rebuild inserts and update fader gain.
+
+// - **updateInsertsUI()**:
+//   - Refreshes the Inserts UI by clearing the existing list and repopulating it based on the current `insertEffects`.
+//   - Creates draggable plugin slots with remove buttons for each inserted effect.
+
+// - **Event Handlers**:
+//   - **onInsertDragStart**: Handles the start of a drag event for reordering plugins.
+//   - **onInsertDragOver**: Allows dropping by preventing the default behavior.
+//   - **onInsertDrop**: Reorders plugins based on drag-and-drop actions.
+//   - **onInsertsListClick**: Removes a plugin when the remove button is clicked.
+//   - **onAddPlugin**: Prompts the user to add a new plugin and integrates it into the audio chain.
+
+// ### UI Components Managed
+
+// - **Add Plugin Button**: Allows users to add new audio effects/plugins to the Inserts section.
+// - **Inserts List**: Displays the list of inserted plugins with drag-and-drop reordering and removal capabilities.
+// - **Add Send Button**: Adds send effects like reverb.
+// - **Preset Controls**: Save and load presets to preserve and restore channel strip settings.
+// - **Undo/Redo Buttons**: Navigate through the state history to undo or redo changes.
+// - **Theme Toggle Button**: Switches between light and dark themes.
+// - **Input Gain Slider**: Adjusts the input gain and updates the audio engine accordingly.
+// - **Mono/Stereo Selector**: Toggles between mono and stereo modes (note: functionality not fully implemented).
+// - **Pan Control Slider**: Adjusts the stereo panning of the audio signal.
+// - **Output Destination Selector**: Chooses the output routing destination (note: bus routing not implemented).
+// - **Add Final Effect Button**: Adds a final effect like a compressor to the audio chain.
+// - **Volume Fader**: Controls the master gain with draggable functionality.
+// - **Input and Output Meters**: Visualize the audio levels for input and output signals.
+
+// ### Audio Meter Implementation
+
+// - **Analyser Nodes**: Utilizes Web Audio API's `AnalyserNode` to capture real-time audio data for visualization.
+// - **RMS Calculation**: Computes the Root Mean Square (RMS) of the audio signal to determine the current level.
+// - **Meter Drawing**: Updates the visual meters based on the calculated RMS values, scaling them appropriately.
+
+// ### Fader Implementation
+
+// - **Drag-and-Drop**: Implements mouse event listeners to allow users to drag the fader knob and adjust the master gain.
+// - **Value Conversion**: Converts the fader's y-position to decibel (dB) values and updates the master gain accordingly.
+// - **Visual Feedback**: Moves the fader knob visually to reflect the current gain value.
+
+// ### State Management Integration
+
+// - **pushState()**: Called after significant UI interactions to save the current state for undo/redo functionality.
+// - **Custom Events**: Dispatches custom events like `rebuild-insert` and `update-fader-gain` to synchronize UI and audio states.
+
+// ### Extensibility
+
+// - **Plugin Management**: Supports dynamic addition, removal, and reordering of audio plugins, making it easy to extend the application's audio processing capabilities.
+// - **Automation Integration**: Listens for updates to automation points to adjust audio parameters in real-time.
+
+// ### Accessibility Features
+
+// - **ARIA Labels**: Ensures that interactive elements are accessible by providing descriptive ARIA labels.
+// - **Keyboard Accessibility**: Elements like the fader knob are focusable and can be manipulated using the keyboard.
+
+// ### Notes
+
+// - **Asynchronous Imports**: Uses dynamic `import()` statements to load modules like `plugins.js` and `audioEngine.js` asynchronously, enhancing performance by loading resources only when needed.
+// - **Error Handling**: Minimal error handling is implemented; prompts and alerts notify users of actions like saving/loading presets or performing undo/redo operations.
+
+// </details>
+
